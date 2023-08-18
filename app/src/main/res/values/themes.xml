@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="Theme.Material3.Light.NoActionBar"/>
+    <style name="AppTheme" parent="Theme.Material3.Light.NoActionBar">
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <item name="windowSplashScreenAnimationDuration">5000</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/white</item>
+    </style>
     <style name="AppTheme.ActionBar" parent="Theme.Material3.Light"/>
 
     <style name="ChipTextAppearance" parent="TextAppearance.MaterialComponents.Chip">

@@ -77,6 +77,8 @@ dependencies {
     // Pose detection with accurate models
     implementation ("com.google.mlkit:pose-detection-accurate:18.0.0-beta3")
 
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
 
     // Text features
     implementation ("com.google.mlkit:text-recognition:16.0.0")
