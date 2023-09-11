@@ -44,6 +44,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    androidResources {
+        noCompress += "tflite"
+    }
 }
 
 dependencies {
@@ -78,6 +82,8 @@ dependencies {
     implementation ("com.google.mlkit:pose-detection-accurate:18.0.0-beta3")
 
     implementation("androidx.core:core-splashscreen:1.0.1")
+
+    implementation ("com.google.mlkit:image-labeling:17.0.7")
 
 
     // Text features

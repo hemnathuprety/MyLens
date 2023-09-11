@@ -17,10 +17,14 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.chip.Chip
 import com.google.gson.Gson
+import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.label.ImageLabeling
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import com.google.mlkit.vision.objects.DetectedObject
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
+import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -62,6 +66,7 @@ class SearchActionActivity : AppCompatActivity() {
 
         objectDetector = ObjectDetection.getClient(options)
 
+
         val imagePath = intent.getStringExtra("imageProxy") ?: ""
         val type = intent.getStringExtra("type") ?: ""
 
@@ -92,7 +97,8 @@ class SearchActionActivity : AppCompatActivity() {
             bitmap = image.bitmapInternal!!
 
             if (type == "image") {
-                analyzeImage(image)
+                //analyzeImage(image)
+                imageCustomModel(image)
             } else {
                 analyzeText(image)
             }
@@ -106,12 +112,47 @@ class SearchActionActivity : AppCompatActivity() {
 
     private fun analyzeImage(imageProxy: InputImage) {
 
+        // To use default options:
+        //val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+
+        // Or, to set the minimum confidence required:
+        // val options = ImageLabelerOptions.Builder()
+        //     .setConfidenceThreshold(0.7f)
+        //     .build()
+        // val labeler = ImageLabeling.getClient(options)
+
+
         val paint = Paint().apply {
             isAntiAlias = true
             style = Paint.Style.STROKE
             color = Color.RED
             strokeWidth = 10f
         }
+
+
+        /*labeler.process(imageProxy)
+            .addOnSuccessListener { labels ->
+                // Task completed successfully
+                for (label in labels) {
+                    val text = label.text
+                    val confidence = label.confidence
+                    val index = label.index
+
+                    val chip = Chip(this)
+                    chip.text = text.trim()
+                    chip.setChipBackgroundColorResource(R.color.holo_orange_light)
+                    chip.isCloseIconVisible = true
+                    chip.setTextColor(getColor(R.color.white))
+                    chip.setTextAppearance(R.style.TextAppearance)
+
+                    binding.chipGroup.addView(chip)
+
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Search Fragment", "Photo capture success: ${e.localizedMessage}")
+            }*/
+
 
         objectDetector.process(imageProxy)
             .addOnSuccessListener { detectedObjects ->
@@ -139,7 +180,7 @@ class SearchActionActivity : AppCompatActivity() {
                 for (detectedObject in detectedObjects) {
                     Log.e(
                         "Search Fragment",
-                        "Photo capture success: ${Gson().toJson(detectedObject)}"
+                        "Photo capture success: ${Gson().toJson(detectedObject.labels)}"
                     )
                     var canvas = Canvas(bitmap)
                     canvas.drawRect(detectedObject.boundingBox, paint)
@@ -152,7 +193,8 @@ class SearchActionActivity : AppCompatActivity() {
                 binding.image.setImageBitmap(bitmap)
 
                 val adapter = ImagesRecyclerView(dataSet)
-                val layoutManager = LinearLayoutManager(applicationContext, LinearLayoutManager.HORIZONTAL, false)
+                val layoutManager =
+                    LinearLayoutManager(applicationContext, LinearLayoutManager.HORIZONTAL, false)
                 binding.rvImages.layoutManager = layoutManager
                 binding.rvImages.itemAnimator = DefaultItemAnimator()
                 binding.rvImages.adapter = adapter
@@ -241,6 +283,89 @@ class SearchActionActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         finish()
         return true
+    }
+
+    private fun imageCustomModel(imageProxy: InputImage) {
+        val localModel = LocalModel.Builder()
+            .setAssetFilePath("lite_model_object_detection_1.tflite")
+            // or .setAbsoluteFilePath(absolute file path to model file)
+            // or .setUri(URI to model file)
+            .build()
+
+        // Multiple object detection in static images
+        val customObjectDetectorOptions =
+            CustomObjectDetectorOptions.Builder(localModel)
+                .setDetectorMode(CustomObjectDetectorOptions.SINGLE_IMAGE_MODE)
+                .enableMultipleObjects()
+                .enableClassification()
+                .setClassificationConfidenceThreshold(0.5f)
+                .setMaxPerObjectLabelCount(3)
+                .build()
+
+        val objectDetector =
+            ObjectDetection.getClient(customObjectDetectorOptions)
+
+        val paint = Paint().apply {
+            isAntiAlias = true
+            style = Paint.Style.STROKE
+            color = Color.RED
+            strokeWidth = 10f
+        }
+
+        objectDetector
+            .process(imageProxy)
+            .addOnFailureListener { e ->
+                Log.e("Search Fragment", "Object detect failed: ${e.localizedMessage}")
+            }
+            .addOnSuccessListener { detectedObjects ->
+                for (detectedObject in detectedObjects) {
+                    Log.e(
+                        "Search Fragment",
+                        "Photo detect success: ${Gson().toJson(detectedObject)}"
+                    )
+
+                    detectedItems = detectedObjects
+
+                    val dataSet: MutableList<Bitmap> = mutableListOf()
+
+                    for (detectedObject in detectedObjects) {
+                        Log.e(
+                            "Search Fragment",
+                            "Photo capture success: ${Gson().toJson(detectedObject.labels)}"
+                        )
+                        var canvas = Canvas(bitmap)
+                        canvas.drawRect(detectedObject.boundingBox, paint)
+                        bitmap?.let { Canvas(it) }?.apply {
+                            canvas
+                        }
+
+                        dataSet.add(getBitmap(detectedObject))
+
+
+                        val labels = detectedObject.labels
+                        for (label in labels) {
+                            val text = label.text
+                            val chip = Chip(this)
+                            chip.text = text.trim()
+                            chip.setChipBackgroundColorResource(R.color.holo_orange_light)
+                            chip.isCloseIconVisible = true
+                            chip.setTextColor(getColor(R.color.white))
+                            chip.setTextAppearance(R.style.TextAppearance)
+
+                            binding.chipGroup.addView(chip)
+                        }
+                    }
+                    binding.image.setImageBitmap(bitmap)
+
+                    val adapter = ImagesRecyclerView(dataSet)
+                    val layoutManager =
+                        LinearLayoutManager(applicationContext, LinearLayoutManager.HORIZONTAL, false)
+                    binding.rvImages.layoutManager = layoutManager
+                    binding.rvImages.itemAnimator = DefaultItemAnimator()
+                    binding.rvImages.adapter = adapter
+
+                }
+            }
     }
 
 }

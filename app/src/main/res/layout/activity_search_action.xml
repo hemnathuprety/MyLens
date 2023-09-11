@@ -36,6 +36,7 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <HorizontalScrollView
+            android:id="@+id/scrollable"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="none"
@@ -59,7 +60,7 @@
             android:layout_height="wrap_content"
             android:paddingHorizontal="10dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/labelMultipleSelection" />
+            app:layout_constraintTop_toBottomOf="@+id/scrollable" />
 
         <WebView
             android:id="@+id/webview"
